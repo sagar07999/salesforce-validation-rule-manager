@@ -6,7 +6,7 @@ function App() {
   const getValidationRules = async () => {
     try {
       const response = await fetch(
-        "http://localhost:5000/validation-rules"
+        "https://salesforce-validation-rule-manager-h42q.onrender.com/validation-rules"
       );
 
       const data = await response.json();
@@ -17,109 +17,92 @@ function App() {
   };
 
   const loginToSalesforce = () => {
-    window.location.href = "http://localhost:5000/login";
+    window.location.href =
+      "https://salesforce-validation-rule-manager-h42q.onrender.com/login";
   };
 
-const toggleRule = (id) => {
-
-  const updatedRules = rules.map((rule) => {
-
-    if (rule.Id === id) {
-      return {
-        ...rule,
-        Active: !rule.Active
-      };
-    }
-
-    return rule;
-  });
-
-  setRules(updatedRules);
-};
-
-const enableAllRules = () => {
-
-  const updatedRules = rules.map((rule) => ({
-    ...rule,
-    Active: true
-  }));
-
-  setRules(updatedRules);
-};
-
-const disableAllRules = () => {
-
-  const updatedRules = rules.map((rule) => ({
-    ...rule,
-    Active: false
-  }));
-
-  setRules(updatedRules);
-};
-
-const deployChanges = async () => {
-
-  try {
-
-    const response = await fetch(
-      "http://localhost:5000/deploy",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(rules)
+  const toggleRule = (id) => {
+    const updatedRules = rules.map((rule) => {
+      if (rule.Id === id) {
+        return {
+          ...rule,
+          Active: !rule.Active
+        };
       }
-    );
+      return rule;
+    });
 
-    const data = await response.json();
+    setRules(updatedRules);
+  };
 
-    if (data.success) {
-      alert("Changes Deployed Successfully");
+  const enableAllRules = () => {
+    const updatedRules = rules.map((rule) => ({
+      ...rule,
+      Active: true
+    }));
 
-      getValidationRules();
-    } else {
+    setRules(updatedRules);
+  };
+
+  const disableAllRules = () => {
+    const updatedRules = rules.map((rule) => ({
+      ...rule,
+      Active: false
+    }));
+
+    setRules(updatedRules);
+  };
+
+  const deployChanges = async () => {
+    try {
+      const response = await fetch(
+        "https://salesforce-validation-rule-manager-h42q.onrender.com/deploy",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(rules)
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("Changes Deployed Successfully");
+        getValidationRules();
+      } else {
+        alert("Deployment Failed");
+      }
+    } catch (error) {
+      console.log(error);
       alert("Deployment Failed");
     }
-
-  } catch (error) {
-
-    console.log(error);
-
-    alert("Deployment Failed");
-  }
-};
+  };
 
   return (
     <div style={{ padding: "20px" }}>
       <h1>Salesforce Validation Rule Manager</h1>
+
       <button onClick={loginToSalesforce}>
-  Login to Salesforce
-</button>
+        Login to Salesforce
+      </button>{" "}
 
-{" "}
-
-<button onClick={getValidationRules}>
-  Get Validation Rules
-</button>
-
-{" "}
+      <button onClick={getValidationRules}>
+        Get Validation Rules
+      </button>{" "}
 
       <button onClick={enableAllRules}>
-  Enable All
-</button>
+        Enable All
+      </button>{" "}
 
-{" "}
+      <button onClick={disableAllRules}>
+        Disable All
+      </button>{" "}
 
-<button onClick={disableAllRules}>
-  Disable All
-</button>
-
-{" "}
-
-<button onClick={deployChanges}>
-  Deploy Changes
-</button>
+      <button onClick={deployChanges}>
+        Deploy Changes
+      </button>
 
       <br />
       <br />
@@ -130,7 +113,7 @@ const deployChanges = async () => {
             <th>Validation Rule</th>
             <th>Object</th>
             <th>Status</th>
-<th>Action</th>
+            <th>Action</th>
           </tr>
         </thead>
 
@@ -141,12 +124,10 @@ const deployChanges = async () => {
               <td>{rule.EntityDefinition?.QualifiedApiName}</td>
               <td>{rule.Active ? "Active" : "Inactive"}</td>
               <td>
-  <button
-  onClick={() => toggleRule(rule.Id)}
->
-  {rule.Active ? "ON" : "OFF"}
-</button>
-</td>
+                <button onClick={() => toggleRule(rule.Id)}>
+                  {rule.Active ? "ON" : "OFF"}
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
