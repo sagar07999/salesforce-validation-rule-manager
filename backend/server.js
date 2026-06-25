@@ -13,26 +13,39 @@ app.get("/", (req, res) => {
     res.send("Backend Running");
 });
 
+app.get("/check-env", (req, res) => {
+    res.json({
+        SF_LOGIN_URL: process.env.SF_LOGIN_URL,
+        SF_REDIRECT_URI: process.env.SF_REDIRECT_URI,
+        CLIENT_ID_EXISTS: !!process.env.SF_CLIENT_ID
+    });
+});
+
 app.get("/login", (req, res) => {
+
+    console.log("===== LOGIN REQUEST =====");
+    console.log("SF_LOGIN_URL =", process.env.SF_LOGIN_URL);
+    console.log("SF_CLIENT_ID =", process.env.SF_CLIENT_ID);
+    console.log("SF_REDIRECT_URI =", process.env.SF_REDIRECT_URI);
+
     const authUrl =
         `${process.env.SF_LOGIN_URL}/services/oauth2/authorize` +
         `?response_type=code` +
         `&client_id=${process.env.SF_CLIENT_ID}` +
         `&redirect_uri=${encodeURIComponent(process.env.SF_REDIRECT_URI)}`;
 
-    console.log("REDIRECT URI =", process.env.SF_REDIRECT_URI);
     console.log("AUTH URL =", authUrl);
 
     res.redirect(authUrl);
 });
-
-app.get("/callback", async(req, res) => {
+app.get("/callback", async (req, res) => {
     const code = req.query.code;
 
     try {
         const response = await axios.post(
             `${process.env.SF_LOGIN_URL}/services/oauth2/token`,
-            null, {
+            null,
+            {
                 params: {
                     grant_type: "authorization_code",
                     client_id: process.env.SF_CLIENT_ID,
@@ -46,29 +59,46 @@ app.get("/callback", async(req, res) => {
         global.accessToken = response.data.access_token;
         global.instanceUrl = response.data.instance_url;
 
-        console.log("Logged in successfully");
+        console.log("===== LOGIN SUCCESS =====");
         console.log("INSTANCE URL =", global.instanceUrl);
         console.log("ACCESS TOKEN =", global.accessToken ? "Present" : "Missing");
 
-        res.redirect("http://localhost:3000");
+        // IMPORTANT
+        res.redirect(
+  "https://salesforce-validation-rule-manager-nine.vercel.app"
+);
 
     } catch (error) {
+
+        console.log("===== OAUTH ERROR =====");
+
         if (error.response) {
             console.log(error.response.data);
         } else {
             console.log(error.message);
         }
-        res.send("OAuth Failed");
+
+        res.status(500).send("OAuth Failed");
     }
 });
 
-app.get("/validation-rules", async(req, res) => {
+app.get("/validation-rules", async (req, res) => {
+
     try {
+
+        if (!global.accessToken || !global.instanceUrl) {
+            return res.status(401).json({
+                success: false,
+                message: "Please login first"
+            });
+        }
+
         const query =
             "SELECT Id, ValidationName, Active, EntityDefinition.QualifiedApiName FROM ValidationRule";
 
         const response = await axios.get(
-            `${global.instanceUrl}/services/data/v64.0/tooling/query`, {
+            `${global.instanceUrl}/services/data/v64.0/tooling/query`,
+            {
                 headers: {
                     Authorization: `Bearer ${global.accessToken}`
                 },
@@ -81,15 +111,18 @@ app.get("/validation-rules", async(req, res) => {
         res.json(response.data.records);
 
     } catch (error) {
+
+        console.log("VALIDATION RULE ERROR");
+
         if (error.response) {
             console.log(error.response.data);
         } else {
             console.log(error.message);
         }
+
         res.status(500).send("Error fetching validation rules");
     }
 });
-
 app.get("/rule/:id", async (req, res) => {
     try {
 
